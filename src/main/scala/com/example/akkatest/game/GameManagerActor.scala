@@ -8,9 +8,12 @@ import akka.actor.{Actor, Props}
   */
 class GameManagerActor() extends Actor {
   def receive = {
-    case CreateGame(player1, player2) =>
-      context.actorOf(Props(new GameActor(player1, player2)))
+    case CreateGame(player1, player2) => context.actorOf(GameActor.props(player1, player2))
   }
+}
+
+object GameManagerActor {
+  def props() = Props[GameManagerActor]
 }
 
 case class CreateGame(player1: PlayerInfo, player2: PlayerInfo)

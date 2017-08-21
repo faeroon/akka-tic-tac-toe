@@ -5,7 +5,8 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.example.akkatest.session.LoginResults._
+import com.example.akkatest.session.ServerGateway.LoginResults._
+import com.example.akkatest.session.ServerGateway.{GetSecret, LoginMessage, RegisterMessage, StartSession}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.Success
@@ -23,7 +24,7 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
     case message @ GetSecret(_) => playerRepository.forward(message)
 
     case StartSession() =>
-      val sessionActor = context.actorOf(Props(new Session(UUID.randomUUID(), matchMaking)))
+      val sessionActor = context.actorOf(Session.props(UUID.randomUUID(), matchMaking))
       println(sessionActor)
       sender() ! sessionActor
 
@@ -50,18 +51,25 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
   def receive = receiveFunc(Map.empty)
 }
 
-object LoginResults {
-  sealed trait LoginResult
-  case object AlreadyLogin extends LoginResult
-  case object IncorrectPassword extends LoginResult
-  case object UserNotExists extends LoginResult
-  case object PersistenceError extends LoginResult
-  case object Successful extends LoginResult
-}
+object ServerGateway {
 
-case class RegisterMessage(username: String, password: String)
-case class LoginMessage(sessionId: UUID, username: String, password: String)
-case class StartSession()
-case class GetSession(uuid: UUID)
-case class GetSecret(username: String)
-case class UserRegistered(username: String)
+  def props(playerRepository: ActorRef, matchMaking: ActorRef)
+           (implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) =
+    Props(new ServerGateway(playerRepository, matchMaking))
+
+  object LoginResults {
+    sealed trait LoginResult
+    case object AlreadyLogin extends LoginResult
+    case object IncorrectPassword extends LoginResult
+    case object UserNotExists extends LoginResult
+    case object PersistenceError extends LoginResult
+    case object Successful extends LoginResult
+  }
+
+  case class RegisterMessage(username: String, password: String)
+  case class LoginMessage(sessionId: UUID, username: String, password: String)
+  case class StartSession()
+  case class GetSession(uuid: UUID)
+  case class GetSecret(username: String)
+  case class UserRegistered(username: String)
+}

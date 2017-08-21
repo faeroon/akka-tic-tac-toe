@@ -2,14 +2,16 @@ package com.example.akkatest.session
 
 import java.util.UUID
 
-import com.example.akkatest.matchmaking.{MatchEnded, MatchPlayers}
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.example.akkatest.game.{GameError, GameResult}
+import com.example.akkatest.matchmaking.{MatchEnded, MatchPlayers}
 import com.example.akkatest.players.RegisterResults.{RegisterResult, Registered}
 import com.example.akkatest.server._
-import com.example.akkatest.session.LoginResults.{LoginResult, Successful}
+import com.example.akkatest.session.ServerGateway.LoginResults.{LoginResult, Successful}
+import com.example.akkatest.session.ServerGateway.{LoginMessage, RegisterMessage}
+import com.example.akkatest.session.Session.ReadyToMatch
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
@@ -79,6 +81,7 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
   //region online state
 
   def online(username: String): Receive = {
+    //TODO fix bug with sender() checking
     case request @ GetOpponentsRequest() => matchMaking.forward(request)
 
     case MatchWithRequest(opponent) =>
@@ -124,5 +127,10 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
   override def receive = anonymous()
 }
 
-case class ReadyToMatch(username: String, session: ActorRef)
-case class MatchWith(username: String)
+object Session {
+
+  def props(id: UUID, matchmakingActor: ActorRef)(implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) =
+    Props(new Session(id, matchmakingActor))
+
+  case class ReadyToMatch(username: String, session: ActorRef)
+}

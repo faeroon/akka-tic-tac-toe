@@ -13,6 +13,7 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import com.example.akkatest.game.GameManagerActor
 import com.example.akkatest.players.PlayerRepository
+import com.example.akkatest.session.ServerGateway.StartSession
 import com.example.akkatest.session._
 
 import scala.concurrent.duration.FiniteDuration
@@ -26,13 +27,11 @@ object WebServer {
 
   implicit val system = ActorSystem("tic-tac-toe-server")
   implicit val materializer = ActorMaterializer()
-
   implicit val executionContext = system.dispatcher
-
   implicit val timeout = Timeout(5, TimeUnit.SECONDS)
 
   def initWebSocketActor(session: ActorRef): Flow[Message, Message, Any] = {
-    val client = system.actorOf(Props(new WebSocketActor(session)))
+    val client = system.actorOf(WebSocketActor.props(session))
     val in = Sink.actorRef(client, 'sinkclose)
     val out = Source.actorRef(8, OverflowStrategy.fail).mapMaterializedValue { a =>
       client ! ('income -> a)
@@ -43,11 +42,10 @@ object WebServer {
 
   def main(args: Array[String]): Unit = {
 
-    val playerRepository = system.actorOf(Props[PlayerRepository], name = "player-repository")
-    val gameManagerActor = system.actorOf(Props[GameManagerActor], name = "game-manager")
-    val matchMakingActor = system.actorOf(Props(new MatchMakingActor(gameManagerActor)), name = "matchmaking")
-    val serverGateway = system.actorOf(Props[ServerGateway](new ServerGateway(playerRepository, matchMakingActor)),
-      name = "server-gateway")
+    val playerRepository = system.actorOf(PlayerRepository.props(), name = "player-repository")
+    val gameManagerActor = system.actorOf(GameManagerActor.props(), name = "game-manager")
+    val matchMakingActor = system.actorOf(MatchMakingActor.props(gameManagerActor), name = "matchmaking")
+    val serverGateway = system.actorOf(ServerGateway.props(playerRepository, matchMakingActor), name = "server-gateway")
 
     val route = {
       path("ws") {

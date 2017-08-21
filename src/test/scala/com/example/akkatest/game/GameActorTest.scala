@@ -18,9 +18,9 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
     "send player moved" in {
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
-      val gameActor = system.actorOf(Props(new GameActor(
+      val gameActor = system.actorOf(GameActor.props(
         PlayerInfo(player1Probe.ref, "player1"),
-        PlayerInfo(player2Probe.ref, "player2"))))
+        PlayerInfo(player2Probe.ref, "player2")))
 
       gameActor.tell(MakeMove(0, 0), player1Probe.ref)
 
@@ -35,9 +35,9 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
       val player3Probe = TestProbe()
-      val gameActor = system.actorOf(Props(new GameActor(
+      val gameActor = system.actorOf(GameActor.props(
         PlayerInfo(player1Probe.ref, "player1"),
-        PlayerInfo(player2Probe.ref, "player2")))
+        PlayerInfo(player2Probe.ref, "player2"))
       )
 
       gameActor.tell(MakeMove(0, 0), player3Probe.ref)
@@ -49,9 +49,9 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
     "send error if move is invalid" in {
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
-      val gameActor = system.actorOf(Props(new GameActor(
+      val gameActor = system.actorOf(GameActor.props(
         PlayerInfo(player1Probe.ref, "player1"),
-        PlayerInfo(player2Probe.ref, "player2")))
+        PlayerInfo(player2Probe.ref, "player2"))
       )
 
       player2Probe.expectMsg(GameStarted("player1"))
@@ -64,14 +64,14 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
     "send win and loose messages if game is over" in {
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
-      val gameActor = system.actorOf(Props(new GameActor(
+      val gameActor = system.actorOf(GameActor.props(
         new TicTacToeGame(Vector(
           Vector(X, O, O),
           Vector(X, Empty, Empty),
           Vector(Empty, Empty, Empty)
         )),
         PlayerInfo(player1Probe.ref, "player1"),
-        PlayerInfo(player2Probe.ref, "player2")))
+        PlayerInfo(player2Probe.ref, "player2"))
       )
 
       player1Probe.expectMsg(GameStarted("player2"))
@@ -88,14 +88,14 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
     "send draw messages if game is over" in {
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
-      val gameActor = system.actorOf(Props(new GameActor(
+      val gameActor = system.actorOf(GameActor.props(
         new TicTacToeGame(Vector(
           Vector(X, O, X),
           Vector(X, O, O),
           Vector(O, X, Empty)
         )),
         PlayerInfo(player1Probe.ref, "player1"),
-        PlayerInfo(player2Probe.ref, "player2")))
+        PlayerInfo(player2Probe.ref, "player2"))
       )
 
       player1Probe.expectMsg(GameStarted("player2"))

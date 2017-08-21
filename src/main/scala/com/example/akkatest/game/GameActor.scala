@@ -1,6 +1,6 @@
 package com.example.akkatest.game
 
-import akka.actor.{Actor, ActorRef, PoisonPill}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import com.example.akkatest.server._
 
 /**
@@ -58,6 +58,11 @@ class GameActor(game: TicTacToeGame, player1: PlayerInfo, player2: PlayerInfo) e
   }
 
   override def receive = process(game)
+}
+
+object GameActor {
+  def props(player1: PlayerInfo, player2: PlayerInfo) = Props(new GameActor(player1, player2))
+  def props(game: TicTacToeGame, player1: PlayerInfo, player2: PlayerInfo) = Props(new GameActor(game, player1, player2))
 }
 
 case class PlayerInfo(actor: ActorRef, username: String)

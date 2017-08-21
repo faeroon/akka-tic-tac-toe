@@ -5,10 +5,11 @@ import java.util.UUID
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import com.example.akkatest.common.StabEchoReceiver
-import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 import com.example.akkatest.players.RegisterResults.{Exists, Registered}
 import com.example.akkatest.server.{ErrorResponse, LoginRequest, Ok, RegisterRequest}
-import com.example.akkatest.session.LoginResults.{Successful, UserNotExists}
+import com.example.akkatest.session.ServerGateway.LoginResults.{Successful, UserNotExists}
+import com.example.akkatest.session.ServerGateway.{LoginMessage, RegisterMessage}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 
 /**
   * @author Denis Pakhomov.

@@ -1,6 +1,6 @@
 package com.example.akkatest.server
 
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
 import akka.http.scaladsl.model.ws.TextMessage
 import akka.util.Timeout
 import io.circe.parser.decode
@@ -46,4 +46,9 @@ class WebSocketActor(session: ActorRef)(implicit val dispatcher: ExecutionContex
 
     case _ => println("undefined message")
   }
+}
+
+object WebSocketActor {
+  def props(session: ActorRef)(implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) =
+    Props(new WebSocketActor(session))
 }

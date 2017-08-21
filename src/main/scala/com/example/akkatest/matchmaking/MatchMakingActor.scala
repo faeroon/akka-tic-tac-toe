@@ -1,10 +1,10 @@
 package com.example.akkatest.matchmaking
 
-import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, MatchMakingStatus, InMatch}
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import com.example.akkatest.game.{CreateGame, PlayerInfo}
+import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch, MatchMakingStatus}
 import com.example.akkatest.server.{GetOpponentsRequest, OpponentsListResponse}
-import com.example.akkatest.session.ReadyToMatch
+import com.example.akkatest.session.Session.ReadyToMatch
 
 /**
   * @author Denis Pakhomov.
@@ -44,6 +44,13 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
   }
 
   def receive = process(users)
+}
+
+object MatchMakingActor {
+  def props(users: Map[String, MatchmakingRecord], gameManager: ActorRef) =
+    Props(new MatchMakingActor(users, gameManager))
+
+  def props(gameManager: ActorRef) = Props(new MatchMakingActor(gameManager))
 }
 
 case class MatchPlayers(user1: String, user2: String)

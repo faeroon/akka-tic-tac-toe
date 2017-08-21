@@ -1,8 +1,8 @@
 package com.example.akkatest.players
 
-import akka.actor.Actor
-import com.example.akkatest.session.{GetSecret, RegisterMessage}
-import RegisterResults._
+import akka.actor.{Actor, Props}
+import com.example.akkatest.players.RegisterResults._
+import com.example.akkatest.session.ServerGateway.{GetSecret, RegisterMessage}
 
 /**
   * @author Denis Pakhomov.
@@ -30,6 +30,10 @@ class PlayerRepository extends Actor {
   }
 
   override def receive() = process(Map.empty)
+}
+
+object PlayerRepository {
+  def props() = Props[PlayerRepository]
 }
 
 object RegisterResults {
