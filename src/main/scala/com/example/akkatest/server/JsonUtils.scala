@@ -39,7 +39,9 @@ trait JsonUtils {
 
   case class GameResponseWrapper(requestType: String, body: GameResponse)
 
-  implicit def toTextMessage(gameResponse: GameResponse): TextMessage =
-    TextMessage.Strict(GameResponseWrapper(camelToUnderscores(gameResponse.getClass.getSimpleName).toUpperCase(),
-      gameResponse).asJson.toString())
+  implicit class GameResponseConverter(gameResponse: GameResponse) {
+    def toTextMessage: TextMessage =
+      TextMessage.Strict(GameResponseWrapper(camelToUnderscores(gameResponse.getClass.getSimpleName).toUpperCase(),
+        gameResponse).asJson.toString())
+  }
 }

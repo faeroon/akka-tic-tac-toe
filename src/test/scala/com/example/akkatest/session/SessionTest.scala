@@ -2,7 +2,7 @@ package com.example.akkatest.session
 
 import java.util.UUID
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import com.example.akkatest.common.StabEchoReceiver
 import com.example.akkatest.players.RegisterResults.{Exists, Registered}
@@ -22,6 +22,7 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
   with DefaultTimeout
   with BeforeAndAfterAll {
 
+  val notInitializedMessage = "not initialized state"
   val anonymousMessage = "anonymous state"
   val authorizedMessage = "authorized state"
 
@@ -30,24 +31,34 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
   "session" must {
 
     trait scope {
+      val socket = TestProbe()
       val matchMakingActor = TestProbe()
       val parent = TestProbe()
       val id = UUID.randomUUID()
       val session = parent.childActorOf(Props(new Session(id, matchMakingActor.ref) with StabEchoReceiver {
-        override def anonymous(): Receive = stabReceive(anonymousMessage) orElse  super.anonymous()
 
-        override def authorized(username: String): Receive =
-          stabReceive(authorizedMessage) orElse super.authorized(username)
+        override def notInitialized(): Receive = stabReceive(notInitializedMessage) orElse super.notInitialized()
+
+        override def anonymous(socket: ActorRef): Receive = stabReceive(anonymousMessage) orElse super.anonymous(socket)
+
+        override def authorized(socket: ActorRef, username: String): Receive =
+          stabReceive(authorizedMessage) orElse super.authorized(socket, username)
       }))
     }
 
-    "starts in anonymous state" in new scope {
+    "starts in not initialized state" in new scope {
+      session ! notInitializedMessage
+      expectMsg(notInitializedMessage)
+    }
+
+    "send socket actor change state to anonymous" in new scope {
+      session ! ('income, socket.ref)
       session ! anonymousMessage
       expectMsg(anonymousMessage)
     }
 
     "successful registration returns ok response" in new scope {
-
+      session ! ('income, socket.ref)
       session ! RegisterRequest("user1", "pass1")
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Registered)
@@ -55,7 +66,7 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
     }
 
     "failed registration returns error response" in new scope {
-
+      session ! ('income, socket.ref)
       session ! RegisterRequest("user1", "pass1")
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Exists)
@@ -63,7 +74,7 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
     }
 
     "successful auth return ok and change state to authorized" in new scope {
-
+      session ! ('income, socket.ref)
       session ! LoginRequest("user1", "pass1")
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
       parent.reply(Successful)
@@ -73,7 +84,7 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
     }
 
     "failed auth return error response and doesn't change state" in new scope {
-
+      session ! ('income, socket.ref)
       session ! LoginRequest("user1", "pass1")
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
       parent.reply(UserNotExists)

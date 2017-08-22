@@ -23,11 +23,13 @@ import scala.util.{Failure, Success}
 class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: ExecutionContextExecutor,
                                                implicit val timeout: Timeout) extends Actor {
 
-  var socket: Option[ActorRef]= None
+  def notInitialized(): Receive = {
+    case ('income, socket: ActorRef) => context.become(anonymous(socket))
+  }
 
   //region anonymous state
 
-  def anonymous(): Receive = {
+  def anonymous(socket: ActorRef): Receive = {
     case RegisterRequest(username, password) =>
       val reply = sender()
       context.parent.ask(RegisterMessage(username, password)).mapTo[RegisterResult].onComplete {
@@ -46,14 +48,12 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
       context.parent.ask(LoginMessage(id, username, password)).mapTo[LoginResult].onComplete {
         case Success(result) => result match {
           case Successful =>
-            context.become(authorized(username))
+            context.become(authorized(socket, username))
             reply ! Ok()
           case res: LoginResult => reply ! ErrorResponse(res.toString)
         }
         case Failure(error) => reply ! ErrorResponse(error.toString)
       }
-
-    case ('income, actor: ActorRef) => socket = Some(actor)
 
     case _ => sender() ! ErrorResponse("invalid state for request")
   }
@@ -62,12 +62,12 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
 
   //region authorized state
 
-  def authorized(username: String): Receive =  {
+  def authorized(socket: ActorRef, username: String): Receive =  {
     case ReadyToMatchRequest() =>
       val reply = sender()
       matchMaking.ask(ReadyToMatch(username, context.self)).mapTo[Boolean].onComplete {
         case Success(result) => if (result) {
-          context.become(online(username))
+          context.become(online(socket, username))
         }
           reply ! (if (result) Ok() else ErrorResponse("user is in match"))
         case Failure(_) => reply ! ErrorResponse("future")
@@ -80,7 +80,7 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
 
   //region online state
 
-  def online(username: String): Receive = {
+  def online(socket: ActorRef, username: String): Receive = {
     //TODO fix bug with sender() checking
     case request @ GetOpponentsRequest() => matchMaking.forward(request)
 
@@ -91,12 +91,14 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
           reply ! Ok()
         } else
           reply ! ErrorResponse("can't match")
+
+        case Failure(exception) => reply ! ErrorResponse(exception.toString)
       }
 
     case resp @ GameStarted(_) =>
       println(resp)
-      context.become(matching(username, sender()))
-      socket.foreach(actor => actor ! resp)
+      context.become(matching(socket, username, sender()))
+      socket ! resp
 
     case _ => sender() ! ErrorResponse("invalid state for request")
   }
@@ -105,26 +107,23 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
 
   //region matching state
 
-  def matching(username: String, game: ActorRef): Receive = {
+  def matching(socket: ActorRef, username: String, game: ActorRef): Receive = {
 
 
-    case error: GameError =>
-      println(socket)
-      socket.foreach(actor => actor ! ErrorResponse(error.toString))
-    case resp @ PlayerMadeMove(_, _, _, _) =>
-      println(resp)
-      socket.foreach(actor => actor ! resp)
+    case error: GameError => socket ! ErrorResponse(error.toString)
+    case resp @ PlayerMadeMove(_, _, _, _) => socket ! resp
     case req @ MakeMove(_, _) => game ! req
-    case resp : GameResult => socket.foreach(actor => actor ! resp)
+    case resp : GameResult =>
+      socket ! resp
       matchMaking ! MatchEnded(username)
-      context.become(online(username))
+      context.become(online(socket, username))
 
     case _ => sender() ! ErrorResponse("invalid state for request")
   }
 
   //endregion
 
-  override def receive = anonymous()
+  override def receive = notInitialized()
 }
 
 object Session {
