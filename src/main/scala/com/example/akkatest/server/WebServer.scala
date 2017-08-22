@@ -31,7 +31,7 @@ object WebServer {
   implicit val timeout = Timeout(5, TimeUnit.SECONDS)
 
   def initWebSocketActor(session: ActorRef): Flow[Message, Message, Any] = {
-    val client = system.actorOf(WebSocketActor.props(session))
+    val client = system.actorOf(WebSocketAdapter.props(session))
     val in = Sink.actorRef(client, 'sinkclose)
     val out = Source.actorRef(8, OverflowStrategy.fail).mapMaterializedValue { a =>
       client ! ('income -> a)

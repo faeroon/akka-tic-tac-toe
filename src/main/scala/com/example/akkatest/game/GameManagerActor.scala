@@ -1,6 +1,7 @@
 package com.example.akkatest.game
 
 import akka.actor.{Actor, Props}
+import com.example.akkatest.game.GameManagerActor.CreateGame
 
 /**
   * @author Denis Pakhomov.
@@ -14,6 +15,6 @@ class GameManagerActor() extends Actor {
 
 object GameManagerActor {
   def props() = Props[GameManagerActor]
-}
 
-case class CreateGame(player1: PlayerInfo, player2: PlayerInfo)
+  case class CreateGame(player1: PlayerInfo, player2: PlayerInfo)
+}

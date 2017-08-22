@@ -1,7 +1,8 @@
 package com.example.akkatest.matchmaking
 
 import akka.actor.{Actor, ActorRef, Props}
-import com.example.akkatest.game.{CreateGame, PlayerInfo}
+import com.example.akkatest.game.GameManagerActor.CreateGame
+import com.example.akkatest.game.PlayerInfo
 import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch, MatchMakingStatus}
 import com.example.akkatest.server.{GetOpponentsRequest, OpponentsListResponse}
 import com.example.akkatest.session.Session.ReadyToMatch
