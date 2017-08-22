@@ -2,8 +2,7 @@ package com.example.akkatest.server
 
 import java.util.concurrent.TimeUnit
 
-import com.example.akkatest.matchmaking.MatchMakingActor
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
@@ -12,6 +11,7 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import com.example.akkatest.game.GameManagerActor
+import com.example.akkatest.matchmaking.MatchMakingActor
 import com.example.akkatest.players.PlayerRepository
 import com.example.akkatest.session.ServerGateway.StartSession
 import com.example.akkatest.session._
@@ -36,7 +36,7 @@ object WebServer {
     val out = Source.actorRef(8, OverflowStrategy.fail).mapMaterializedValue { a =>
       client ! ('income -> a)
       a
-    }.keepAlive(FiniteDuration(5, TimeUnit.SECONDS), () => TextMessage.Strict("HEART_BEAT"))
+    }.keepAlive(FiniteDuration(5, TimeUnit.SECONDS), () => TextMessage.Strict("""{"type": "HeartBeat"}"""))
     Flow.fromSinkAndSource(in, out)
   }
 

@@ -14,7 +14,6 @@ case class Draw() extends GameOver
 case class PlayerMadeMove(player: String, x: Int, y: Int, figure: String) extends GameResponse
 case class GameStarted(opponent: String) extends GameResponse
 
-case class StatusResponse(status: Boolean) extends GameResponse
 case class Ok() extends GameResponse
-case class OpponentsListResponse(opponents: Vector[String]) extends GameResponse
-case class ErrorResponse(message: String) extends GameResponse
+case class OpponentsList(opponents: Vector[String]) extends GameResponse
+case class Error(message: String) extends GameResponse

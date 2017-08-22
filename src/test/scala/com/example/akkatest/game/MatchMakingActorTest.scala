@@ -4,8 +4,8 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch}
 import com.example.akkatest.matchmaking.{MatchEnded, MatchMakingActor, MatchPlayers, MatchmakingRecord}
-import com.example.akkatest.server.{GetOpponentsRequest, OpponentsListResponse}
-import com.example.akkatest.session.Session.ReadyToMatch
+import com.example.akkatest.server.{GetOpponents, OpponentsList}
+import com.example.akkatest.session.Session.AddToMatching
 import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 
 /**
@@ -25,7 +25,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
       val player1Probe = TestProbe()
 
-      matchMakingActor ! ReadyToMatch("user1", player1Probe.ref)
+      matchMakingActor ! AddToMatching("user1", player1Probe.ref)
       expectMsg(true)
 
       matchMakingActor ! "players"
@@ -40,7 +40,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
-      matchMakingActor ! ReadyToMatch("user1", player1Probe.ref)
+      matchMakingActor ! AddToMatching("user1", player1Probe.ref)
       expectMsg(true)
 
       matchMakingActor ! "players"
@@ -55,7 +55,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
-      matchMakingActor ! ReadyToMatch("user1", player1Probe.ref)
+      matchMakingActor ! AddToMatching("user1", player1Probe.ref)
       expectMsg(false)
 
       matchMakingActor ! "players"
@@ -77,8 +77,8 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
-      matchMakingActor.tell(GetOpponentsRequest(), player1Probe.ref)
-      player1Probe.expectMsg(OpponentsListResponse(Vector("user2")))
+      matchMakingActor.tell(GetOpponents(), player1Probe.ref)
+      player1Probe.expectMsg(OpponentsList(Vector("user2")))
     }
 
     "matching available players" in {

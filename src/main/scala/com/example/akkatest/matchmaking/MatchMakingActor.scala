@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorRef, Props}
 import com.example.akkatest.game.GameManagerActor.CreateGame
 import com.example.akkatest.game.PlayerInfo
 import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch, MatchMakingStatus}
-import com.example.akkatest.server.{GetOpponentsRequest, OpponentsListResponse}
-import com.example.akkatest.session.Session.ReadyToMatch
+import com.example.akkatest.server.{GetOpponents, OpponentsList}
+import com.example.akkatest.session.Session.AddToMatching
 
 /**
   * @author Denis Pakhomov.
@@ -17,15 +17,15 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
 
   def process(users: Map[String, MatchmakingRecord]): Receive = {
 
-    case ReadyToMatch(username, session) =>
+    case AddToMatching(username, session) =>
       users.get(username) match {
       case Some(record) => sender() ! (record.status == Available)
       case None => context.become(process(users + (username -> MatchmakingRecord(session, Available))))
         sender() ! true
     }
 
-    case GetOpponentsRequest() => sender() !
-      OpponentsListResponse( users.filter {case (_, record) => record.actor != sender() && record.status == Available }.keys.toVector)
+    case GetOpponents() => sender() !
+      OpponentsList( users.filter {case (_, record) => record.actor != sender() && record.status == Available }.keys.toVector)
 
     case MatchPlayers(user1, user2) =>
 

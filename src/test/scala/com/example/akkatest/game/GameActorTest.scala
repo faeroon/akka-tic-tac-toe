@@ -42,7 +42,7 @@ class GameActorTest extends TestKit(ActorSystem("testSystem"))
 
       gameActor.tell(MakeMove(0, 0), player3Probe.ref)
 
-      player3Probe.expectMsg(ErrorResponse("Invalid player"))
+      player3Probe.expectMsg(Error("Invalid player"))
     }
 
 

@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import com.example.akkatest.common.StabEchoReceiver
 import com.example.akkatest.players.RegisterResults.{Exists, Registered}
-import com.example.akkatest.server.{ErrorResponse, LoginRequest, Ok, RegisterRequest}
+import com.example.akkatest.server.{Error, Login, Ok, Register}
 import com.example.akkatest.session.ServerGateway.LoginResults.{Successful, UserNotExists}
 import com.example.akkatest.session.ServerGateway.{LoginMessage, RegisterMessage}
 import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
@@ -59,7 +59,7 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
 
     "successful registration returns ok response" in new scope {
       session ! ('income, socket.ref)
-      session ! RegisterRequest("user1", "pass1")
+      session ! Register("user1", "pass1")
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Registered)
       expectMsg(Ok())
@@ -67,15 +67,15 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
 
     "failed registration returns error response" in new scope {
       session ! ('income, socket.ref)
-      session ! RegisterRequest("user1", "pass1")
+      session ! Register("user1", "pass1")
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Exists)
-      expectMsg(ErrorResponse(Exists.toString))
+      expectMsg(Error(Exists.toString))
     }
 
     "successful auth return ok and change state to authorized" in new scope {
       session ! ('income, socket.ref)
-      session ! LoginRequest("user1", "pass1")
+      session ! Login("user1", "pass1")
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
       parent.reply(Successful)
       expectMsg(Ok())
@@ -85,10 +85,10 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
 
     "failed auth return error response and doesn't change state" in new scope {
       session ! ('income, socket.ref)
-      session ! LoginRequest("user1", "pass1")
+      session ! Login("user1", "pass1")
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
       parent.reply(UserNotExists)
-      expectMsg(ErrorResponse(UserNotExists.toString))
+      expectMsg(Error(UserNotExists.toString))
       session ! anonymousMessage
       expectMsg(anonymousMessage)
     }

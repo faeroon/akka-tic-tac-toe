@@ -46,7 +46,7 @@ class GameActor(game: TicTacToeGame, player1: PlayerInfo, player2: PlayerInfo) e
               }
               context.become(process(state))
         }
-        case None => sender() ! ErrorResponse("Invalid player")
+        case None => sender() ! Error("Invalid player")
       }
 
     case _ => None

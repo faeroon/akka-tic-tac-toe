@@ -27,7 +27,7 @@ class WebSocketAdapter(session: ActorRef) extends Actor with JsonUtils {
     case TextMessage.Strict(messageText) =>
       decode[GameRequest](messageText) match {
         case Right(request) => session ! request
-        case Left(error) => connection ! ErrorResponse(error.getMessage).toTextMessage
+        case Left(error) => connection ! Error(error.getMessage).toTextMessage
       }
 
     case response: GameResponse => connection ! response.toTextMessage
@@ -36,7 +36,7 @@ class WebSocketAdapter(session: ActorRef) extends Actor with JsonUtils {
 
     case Terminated(_) => context.stop(self)
 
-    case _ => ErrorResponse("undefined message").toTextMessage
+    case _ => Error("undefined message").toTextMessage
   }
 
   override def receive() = notInitialized()
