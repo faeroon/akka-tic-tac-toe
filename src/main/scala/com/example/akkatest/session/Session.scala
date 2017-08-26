@@ -3,9 +3,8 @@ package com.example.akkatest.session
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.pattern.ask
-import akka.util.Timeout
 import com.example.akkatest.game.{GameError, GameResult}
+import com.example.akkatest.matchmaking.MatchMakingStatuses.{AddedToMatch, NotMatched}
 import com.example.akkatest.matchmaking.{MatchEnded, MatchPlayers}
 import com.example.akkatest.players.RegisterResults.{RegisterResult, Registered}
 import com.example.akkatest.server._
@@ -13,15 +12,11 @@ import com.example.akkatest.session.ServerGateway.LoginResults.{LoginResult, Suc
 import com.example.akkatest.session.ServerGateway.{LoginMessage, RegisterMessage}
 import com.example.akkatest.session.Session.AddToMatching
 
-import scala.concurrent.ExecutionContextExecutor
-import scala.util.{Failure, Success}
-
 /**
   * @author Denis Pakhomov.
   * @version 1.0
   */
-class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: ExecutionContextExecutor,
-                                               implicit val timeout: Timeout) extends Actor {
+class Session(id: UUID, matchMaking: ActorRef) extends Actor {
 
   def notInitialized(): Receive = {
     case ('income, socket: ActorRef) => context.become(anonymous(socket))
@@ -31,29 +26,22 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
 
   def anonymous(socket: ActorRef): Receive = {
     case Register(username, password) =>
-      val reply = sender()
-      context.parent.ask(RegisterMessage(username, password)).mapTo[RegisterResult].onComplete {
+      if (sender() == socket) context.parent ! RegisterMessage(username, password)
+      else sender() ! Error("invalid sender")
 
-        case Success(result) => result match {
+    case Registered => socket ! Ok()
 
-          case Registered => reply ! Ok()
-          case error: RegisterResult => reply ! Error(error.toString)
-        }
-
-        case Failure(exception) => reply ! Error(exception.getMessage)
-      }
+    case error: RegisterResult => socket ! Error(error.toString)
 
     case Login(username, password) =>
-      val reply = sender()
-      context.parent.ask(LoginMessage(id, username, password)).mapTo[LoginResult].onComplete {
-        case Success(result) => result match {
-          case Successful =>
-            context.become(authorized(socket, username))
-            reply ! Ok()
-          case res: LoginResult => reply ! Error(res.toString)
-        }
-        case Failure(error) => reply ! Error(error.toString)
-      }
+      if (sender() == socket) context.parent ! LoginMessage(id, username, password)
+      else sender() ! Error("invalid sender")
+
+    case Successful(username) =>
+      context.become(authorized(socket, username))
+      socket ! Ok()
+
+    case error: LoginResult => socket ! Error(error.toString)
 
     case _ => sender() ! Error("invalid state for request")
   }
@@ -63,15 +51,14 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
   //region authorized state
 
   def authorized(socket: ActorRef, username: String): Receive =  {
-    case ReadyToMatch() =>
-      val reply = sender()
-      matchMaking.ask(AddToMatching(username, context.self)).mapTo[Boolean].onComplete {
-        case Success(result) => if (result) {
-          context.become(online(socket, username))
-        }
-          reply ! (if (result) Ok() else Error("user is in match"))
-        case Failure(_) => reply ! Error("future")
-      }
+
+    case ReadyToMatch() => matchMaking ! AddToMatching(username, context.self)
+
+    case NotMatched => socket ! Error(NotMatched.toString)
+
+    case AddedToMatch =>
+      context.become(online(socket, username))
+      socket ! Ok()
 
     case _ => sender() ! Error("invalid state for request")
   }
@@ -81,19 +68,13 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
   //region online state
 
   def online(socket: ActorRef, username: String): Receive = {
-    //TODO fix bug with sender() checking
-    case request @ GetOpponents() => matchMaking.forward(request)
 
-    case MatchWith(opponent) =>
-      val reply = sender()
-      matchMaking.ask(MatchPlayers(username, opponent)).mapTo[Boolean].onComplete {
-        case Success(result) => if (result) {
-          reply ! Ok()
-        } else
-          reply ! Error("can't match")
+    case request @ GetOpponents() => matchMaking ! request
+    case response @ OpponentsList(_) => socket ! response
 
-        case Failure(exception) => reply ! Error(exception.toString)
-      }
+    case MatchWith(opponent) => matchMaking ! MatchPlayers(username, opponent)
+
+    case NotMatched => socket ! Error(NotMatched.toString)
 
     case resp @ GameStarted(_) =>
       println(resp)
@@ -108,8 +89,6 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
   //region matching state
 
   def matching(socket: ActorRef, username: String, game: ActorRef): Receive = {
-
-
     case error: GameError => socket ! Error(error.toString)
     case resp @ PlayerMadeMove(_, _, _, _) => socket ! resp
     case req @ MakeMove(_, _) => game ! req
@@ -128,8 +107,7 @@ class Session(id: UUID, matchMaking: ActorRef)(implicit val dispatcher: Executio
 
 object Session {
 
-  def props(id: UUID, matchmakingActor: ActorRef)(implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) =
-    Props(new Session(id, matchmakingActor))
+  def props(id: UUID, matchmakingActor: ActorRef) = Props(new Session(id, matchmakingActor))
 
   case class AddToMatching(username: String, session: ActorRef)
 }

@@ -2,7 +2,8 @@ package com.example.akkatest.game
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch}
+import com.example.akkatest.game.GameManagerActor.CreateGame
+import com.example.akkatest.matchmaking.MatchMakingStatuses._
 import com.example.akkatest.matchmaking.{MatchEnded, MatchMakingActor, MatchPlayers, MatchmakingRecord}
 import com.example.akkatest.server.{GetOpponents, OpponentsList}
 import com.example.akkatest.session.Session.AddToMatching
@@ -26,7 +27,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val player1Probe = TestProbe()
 
       matchMakingActor ! AddToMatching("user1", player1Probe.ref)
-      expectMsg(true)
+      expectMsg(AddedToMatch)
 
       matchMakingActor ! "players"
       expectMsg(Map("user1" -> MatchmakingRecord(player1Probe.ref, Available)))
@@ -41,7 +42,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor ! AddToMatching("user1", player1Probe.ref)
-      expectMsg(true)
+      expectMsg(AddedToMatch)
 
       matchMakingActor ! "players"
       expectMsg(players)
@@ -56,7 +57,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor ! AddToMatching("user1", player1Probe.ref)
-      expectMsg(false)
+      expectMsg(PlayerIsInMatch)
 
       matchMakingActor ! "players"
       expectMsg(players)
@@ -95,12 +96,14 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user2"), player1Probe.ref)
-      player1Probe.expectMsg(true)
 
       matchMakingActor ! "players"
       expectMsg(Map(
         "user1" -> MatchmakingRecord(player1Probe.ref, InMatch),
         "user2" -> MatchmakingRecord(player2Probe.ref, InMatch)))
+
+      gameManagerActor.expectMsg(CreateGame(PlayerInfo(player1Probe.ref, "user1"),
+        PlayerInfo(player2Probe.ref, "user2")))
     }
 
     "doesn't match matched players" in {
@@ -117,7 +120,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user2"), player1Probe.ref)
-      player1Probe.expectMsg(false)
+      player1Probe.expectMsg(NotMatched)
 
       matchMakingActor ! "players"
       expectMsg(Map(
@@ -139,7 +142,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user3"), player1Probe.ref)
-      player1Probe.expectMsg(false)
+      player1Probe.expectMsg(NotMatched)
 
       matchMakingActor ! "players"
       expectMsg(Map(
@@ -161,7 +164,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
       val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user1"), player1Probe.ref)
-      player1Probe.expectMsg(false)
+      player1Probe.expectMsg(NotMatched)
 
       matchMakingActor ! "players"
       expectMsg(Map(

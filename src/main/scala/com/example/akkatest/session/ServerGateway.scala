@@ -31,14 +31,14 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
     case LoginMessage(id, username, password) =>
       val reply = sender()
       sessionIds.get(username) match {
-        case Some(_) => reply ! AlreadyLogin
+        case Some(_) => reply ! AlreadyLogin(username)
 
         case None => playerRepository.ask(GetSecret(username)).mapTo[Option[String]].map {
-          case None => UserNotExists
-          case Some(storedPassword) if storedPassword != password => IncorrectPassword
+          case None => UserNotExists(username)
+          case Some(storedPassword) if storedPassword != password => IncorrectPassword(username)
           case _ =>
             context.become(receiveFunc(sessionIds + (username -> id)))
-            Successful
+            Successful(username)
         }.onComplete {
           case Success(futureResult) => reply ! futureResult
           case _ => reply ! PersistenceError
@@ -59,11 +59,11 @@ object ServerGateway {
 
   object LoginResults {
     sealed trait LoginResult
-    case object AlreadyLogin extends LoginResult
-    case object IncorrectPassword extends LoginResult
-    case object UserNotExists extends LoginResult
+    case class AlreadyLogin(username: String) extends LoginResult
+    case class IncorrectPassword(username: String) extends LoginResult
+    case class UserNotExists(username: String) extends LoginResult
     case object PersistenceError extends LoginResult
-    case object Successful extends LoginResult
+    case class Successful(username: String) extends LoginResult
   }
 
   case class RegisterMessage(username: String, password: String)

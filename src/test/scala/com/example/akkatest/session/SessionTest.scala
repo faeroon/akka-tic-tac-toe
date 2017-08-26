@@ -59,36 +59,36 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
 
     "successful registration returns ok response" in new scope {
       session ! ('income, socket.ref)
-      session ! Register("user1", "pass1")
+      session.tell(Register("user1", "pass1"), socket.ref)
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Registered)
-      expectMsg(Ok())
+      socket.expectMsg(Ok())
     }
 
     "failed registration returns error response" in new scope {
       session ! ('income, socket.ref)
-      session ! Register("user1", "pass1")
+      session.tell(Register("user1", "pass1"), socket.ref)
       parent.expectMsg(RegisterMessage("user1", "pass1"))
       parent.reply(Exists)
-      expectMsg(Error(Exists.toString))
+      socket.expectMsg(Error(Exists.toString))
     }
 
     "successful auth return ok and change state to authorized" in new scope {
       session ! ('income, socket.ref)
-      session ! Login("user1", "pass1")
+      session.tell(Login("user1", "pass1"), socket.ref)
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
-      parent.reply(Successful)
-      expectMsg(Ok())
+      parent.reply(Successful("user1"))
+      socket.expectMsg(Ok())
       session ! authorizedMessage
       expectMsg(authorizedMessage)
     }
 
     "failed auth return error response and doesn't change state" in new scope {
       session ! ('income, socket.ref)
-      session ! Login("user1", "pass1")
+      session.tell(Login("user1", "pass1"), socket.ref)
       parent.expectMsg(LoginMessage(id, "user1", "pass1"))
-      parent.reply(UserNotExists)
-      expectMsg(Error(UserNotExists.toString))
+      parent.reply(UserNotExists("user1"))
+      socket.expectMsg(Error(UserNotExists("user1").toString))
       session ! anonymousMessage
       expectMsg(anonymousMessage)
     }

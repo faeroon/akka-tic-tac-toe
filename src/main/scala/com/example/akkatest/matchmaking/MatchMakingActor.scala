@@ -3,7 +3,7 @@ package com.example.akkatest.matchmaking
 import akka.actor.{Actor, ActorRef, Props}
 import com.example.akkatest.game.GameManagerActor.CreateGame
 import com.example.akkatest.game.PlayerInfo
-import com.example.akkatest.matchmaking.MatchMakingStatuses.{Available, InMatch, MatchMakingStatus}
+import com.example.akkatest.matchmaking.MatchMakingStatuses._
 import com.example.akkatest.server.{GetOpponents, OpponentsList}
 import com.example.akkatest.session.Session.AddToMatching
 
@@ -19,9 +19,9 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
 
     case AddToMatching(username, session) =>
       users.get(username) match {
-      case Some(record) => sender() ! (record.status == Available)
+      case Some(record) => sender() ! (if (record.status == Available) AddedToMatch else PlayerIsInMatch)
       case None => context.become(process(users + (username -> MatchmakingRecord(session, Available))))
-        sender() ! true
+        sender() ! AddedToMatch
     }
 
     case GetOpponents() => sender() !
@@ -31,10 +31,9 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
 
       val usernames = Seq(user1, user2)
       if (user1 != user2 && usernames.forall(username => users.get(username).map(rec => rec.status).contains(Available))) {
-        sender() ! true
         context.become(process(users ++ usernames.map(username => (username, users(username).copy(status = InMatch))).toMap))
         gameManager ! CreateGame(PlayerInfo(users(user1).actor, user1), PlayerInfo(users(user2).actor, user2))
-      } else sender() ! false
+      } else sender() ! NotMatched
 
     case MatchEnded(user) =>
       context.become(process(users - user))
@@ -61,6 +60,14 @@ object MatchMakingStatuses {
   sealed trait MatchMakingStatus
   case object Available extends MatchMakingStatus
   case object InMatch extends MatchMakingStatus
+
+  sealed trait MatchPlayersResult
+  case object Matched extends MatchPlayersResult
+  case object NotMatched extends MatchPlayersResult
+
+  sealed trait AddToMatchResult
+  case object AddedToMatch extends AddToMatchResult
+  case object PlayerIsInMatch extends AddToMatchResult
 }
 
 case class MatchmakingRecord(actor: ActorRef, status: MatchMakingStatus)
