@@ -32,10 +32,9 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
 
     trait scope {
       val socket = TestProbe()
-      val matchMakingActor = TestProbe()
-      val parent = TestProbe()
+      val gateway = TestProbe()
       val id = UUID.randomUUID()
-      val session = parent.childActorOf(Props(new Session(id, matchMakingActor.ref) with StabEchoReceiver {
+      val session = system.actorOf(Props(new Session(id, gateway.ref) with StabEchoReceiver {
 
         override def notInitialized(): Receive = stabReceive(notInitializedMessage) orElse super.notInitialized()
 
@@ -60,24 +59,24 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
     "successful registration returns ok response" in new scope {
       session ! ('income, socket.ref)
       session.tell(Register("user1", "pass1"), socket.ref)
-      parent.expectMsg(RegisterMessage("user1", "pass1"))
-      parent.reply(Registered)
+      gateway.expectMsg(RegisterMessage("user1", "pass1"))
+      gateway.reply(Registered)
       socket.expectMsg(Ok())
     }
 
     "failed registration returns error response" in new scope {
       session ! ('income, socket.ref)
       session.tell(Register("user1", "pass1"), socket.ref)
-      parent.expectMsg(RegisterMessage("user1", "pass1"))
-      parent.reply(Exists)
+      gateway.expectMsg(RegisterMessage("user1", "pass1"))
+      gateway.reply(Exists)
       socket.expectMsg(Error(Exists.toString))
     }
 
     "successful auth return ok and change state to authorized" in new scope {
       session ! ('income, socket.ref)
       session.tell(Login("user1", "pass1"), socket.ref)
-      parent.expectMsg(LoginMessage(id, "user1", "pass1"))
-      parent.reply(Successful("user1"))
+      gateway.expectMsg(LoginMessage(id, "user1", "pass1"))
+      gateway.reply(Successful("user1"))
       socket.expectMsg(Ok())
       session ! authorizedMessage
       expectMsg(authorizedMessage)
@@ -86,8 +85,8 @@ class SessionTest extends TestKit(ActorSystem("testSystem"))
     "failed auth return error response and doesn't change state" in new scope {
       session ! ('income, socket.ref)
       session.tell(Login("user1", "pass1"), socket.ref)
-      parent.expectMsg(LoginMessage(id, "user1", "pass1"))
-      parent.reply(UserNotExists("user1"))
+      gateway.expectMsg(LoginMessage(id, "user1", "pass1"))
+      gateway.reply(UserNotExists("user1"))
       socket.expectMsg(Error(UserNotExists("user1").toString))
       session ! anonymousMessage
       expectMsg(anonymousMessage)

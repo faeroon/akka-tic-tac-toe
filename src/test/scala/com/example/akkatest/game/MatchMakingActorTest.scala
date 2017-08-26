@@ -21,8 +21,8 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
   "a match making actor" must {
     "add new players with status Available" in {
 
-      val gameManagerActor = TestProbe()
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(gameManagerActor.ref))
+      val gateway = TestProbe()
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(gateway.ref))
 
       val player1Probe = TestProbe()
 
@@ -34,12 +34,12 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
     }
     "make no changes if user is already ready to match" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
 
       val players = Map("user1" -> MatchmakingRecord(player1Probe.ref, Available))
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor ! AddToMatching("user1", player1Probe.ref)
       expectMsg(AddedToMatch)
@@ -49,12 +49,12 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
     }
     "forbid adding to matchmaking players in match" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
 
       val players = Map("user1" -> MatchmakingRecord(player1Probe.ref, InMatch))
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor ! AddToMatching("user1", player1Probe.ref)
       expectMsg(PlayerIsInMatch)
@@ -65,7 +65,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
     "get opponents list returns all active players" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
       val player3Probe = TestProbe()
@@ -76,7 +76,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user3" -> MatchmakingRecord(player3Probe.ref, InMatch)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor.tell(GetOpponents(), player1Probe.ref)
       player1Probe.expectMsg(OpponentsList(Vector("user2")))
@@ -84,7 +84,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
     "matching available players" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
 
@@ -93,7 +93,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user2" -> MatchmakingRecord(player2Probe.ref, Available)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user2"), player1Probe.ref)
 
@@ -102,13 +102,13 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user1" -> MatchmakingRecord(player1Probe.ref, InMatch),
         "user2" -> MatchmakingRecord(player2Probe.ref, InMatch)))
 
-      gameManagerActor.expectMsg(CreateGame(PlayerInfo(player1Probe.ref, "user1"),
+      gateway.expectMsg(CreateGame(PlayerInfo(player1Probe.ref, "user1"),
         PlayerInfo(player2Probe.ref, "user2")))
     }
 
     "doesn't match matched players" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
 
@@ -117,7 +117,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user2" -> MatchmakingRecord(player2Probe.ref, InMatch)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user2"), player1Probe.ref)
       player1Probe.expectMsg(NotMatched)
@@ -130,7 +130,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
     "doesn't match not ready to match players" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
 
@@ -139,7 +139,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user2" -> MatchmakingRecord(player2Probe.ref, Available)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user3"), player1Probe.ref)
       player1Probe.expectMsg(NotMatched)
@@ -152,7 +152,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
     "doesn't match player with themself" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
 
@@ -161,7 +161,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user2" -> MatchmakingRecord(player2Probe.ref, Available)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor.tell(MatchPlayers("user1", "user1"), player1Probe.ref)
       player1Probe.expectMsg(NotMatched)
@@ -174,7 +174,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
 
     "removes player from match making then match ended" in {
 
-      val gameManagerActor = TestProbe()
+      val gateway = TestProbe()
       val player1Probe = TestProbe()
       val player2Probe = TestProbe()
 
@@ -183,7 +183,7 @@ class MatchMakingActorTest extends TestKit(ActorSystem("testSystem"))
         "user2" -> MatchmakingRecord(player2Probe.ref, InMatch)
       )
 
-      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gameManagerActor.ref))
+      val matchMakingActor = system.actorOf(MatchMakingActor.props(players, gateway.ref))
 
       matchMakingActor ! MatchEnded("user1")
 

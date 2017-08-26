@@ -42,10 +42,7 @@ object WebServer {
 
   def main(args: Array[String]): Unit = {
 
-    val playerRepository = system.actorOf(PlayerRepository.props(), name = "player-repository")
-    val gameManagerActor = system.actorOf(GameManagerActor.props(), name = "game-manager")
-    val matchMakingActor = system.actorOf(MatchMakingActor.props(gameManagerActor), name = "matchmaking")
-    val serverGateway = system.actorOf(ServerGateway.props(playerRepository, matchMakingActor), name = "server-gateway")
+    val serverGateway = system.actorOf(ServerGateway.props(), name = "server-gateway")
 
     val route = {
       path("ws") {

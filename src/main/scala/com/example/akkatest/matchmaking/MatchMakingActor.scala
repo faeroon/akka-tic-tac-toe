@@ -11,9 +11,9 @@ import com.example.akkatest.session.Session.AddToMatching
   * @author Denis Pakhomov.
   * @version 1.0
   */
-class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: ActorRef) extends Actor {
+class MatchMakingActor(users: Map[String, MatchmakingRecord], gateway: ActorRef) extends Actor {
 
-  def this(gameManager: ActorRef) { this(Map.empty, gameManager) }
+  def this(gateway: ActorRef) { this(Map.empty, gateway) }
 
   def process(users: Map[String, MatchmakingRecord]): Receive = {
 
@@ -32,7 +32,7 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
       val usernames = Seq(user1, user2)
       if (user1 != user2 && usernames.forall(username => users.get(username).map(rec => rec.status).contains(Available))) {
         context.become(process(users ++ usernames.map(username => (username, users(username).copy(status = InMatch))).toMap))
-        gameManager ! CreateGame(PlayerInfo(users(user1).actor, user1), PlayerInfo(users(user2).actor, user2))
+        gateway ! CreateGame(PlayerInfo(users(user1).actor, user1), PlayerInfo(users(user2).actor, user2))
       } else sender() ! NotMatched
 
     case MatchEnded(user) =>
@@ -47,10 +47,10 @@ class MatchMakingActor(users: Map[String, MatchmakingRecord], gameManager: Actor
 }
 
 object MatchMakingActor {
-  def props(users: Map[String, MatchmakingRecord], gameManager: ActorRef) =
-    Props(new MatchMakingActor(users, gameManager))
+  def props(users: Map[String, MatchmakingRecord], gateway: ActorRef) =
+    Props(new MatchMakingActor(users, gateway))
 
-  def props(gameManager: ActorRef) = Props(new MatchMakingActor(gameManager))
+  def props(gateway: ActorRef) = Props(new MatchMakingActor(gateway))
 }
 
 case class MatchPlayers(user1: String, user2: String)

@@ -5,8 +5,14 @@ import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import com.example.akkatest.game.GameManagerActor
+import com.example.akkatest.game.GameManagerActor.CreateGame
+import com.example.akkatest.matchmaking.{MatchMakingActor, MatchPlayers}
+import com.example.akkatest.players.PlayerRepository
+import com.example.akkatest.server.GetOpponents
 import com.example.akkatest.session.ServerGateway.LoginResults._
 import com.example.akkatest.session.ServerGateway.{GetSecret, LoginMessage, RegisterMessage, StartSession}
+import com.example.akkatest.session.Session.AddToMatching
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.Success
@@ -15,8 +21,11 @@ import scala.util.Success
   * @author Denis Pakhomov.
   * @version 1.0
   */
-class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
-                   (implicit val dispatcher: ExecutionContextExecutor, implicit val timeout: Timeout) extends Actor {
+class ServerGateway()(implicit val dispatcher: ExecutionContextExecutor, implicit val timeout: Timeout) extends Actor {
+
+  private val playerRepository = context.actorOf(PlayerRepository.props())
+  private val matchMaking = context.actorOf(MatchMakingActor.props(context.self))
+  private val gameManager = context.actorOf(GameManagerActor.props())
 
   def receiveFunc(sessionIds: Map[String, UUID]): Receive = {
     case message @ RegisterMessage(_, _) => playerRepository.forward(message)
@@ -24,7 +33,7 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
     case message @ GetSecret(_) => playerRepository.forward(message)
 
     case StartSession() =>
-      val sessionActor = context.actorOf(Session.props(UUID.randomUUID(), matchMaking))
+      val sessionActor = context.actorOf(Session.props(UUID.randomUUID(), context.self))
       println(sessionActor)
       sender() ! sessionActor
 
@@ -45,6 +54,12 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
         }
       }
 
+    case req @ AddToMatching(_, _) => matchMaking.forward(req)
+    case req @ GetOpponents() => matchMaking.forward(req)
+    case req @ MatchPlayers(_, _) => matchMaking.forward(req)
+
+    case req @ CreateGame(_, _) => gameManager ! req
+
     case _ => None
   }
 
@@ -53,9 +68,7 @@ class ServerGateway(playerRepository: ActorRef, matchMaking: ActorRef)
 
 object ServerGateway {
 
-  def props(playerRepository: ActorRef, matchMaking: ActorRef)
-           (implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) =
-    Props(new ServerGateway(playerRepository, matchMaking))
+  def props()(implicit dispatcher: ExecutionContextExecutor, timeout: Timeout) = Props(new ServerGateway())
 
   object LoginResults {
     sealed trait LoginResult

@@ -16,7 +16,7 @@ import com.example.akkatest.session.Session.AddToMatching
   * @author Denis Pakhomov.
   * @version 1.0
   */
-class Session(id: UUID, matchMaking: ActorRef) extends Actor {
+class Session(id: UUID, gateway: ActorRef) extends Actor {
 
   def notInitialized(): Receive = {
     case ('income, socket: ActorRef) => context.become(anonymous(socket))
@@ -26,7 +26,7 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
 
   def anonymous(socket: ActorRef): Receive = {
     case Register(username, password) =>
-      if (sender() == socket) context.parent ! RegisterMessage(username, password)
+      if (sender() == socket) gateway ! RegisterMessage(username, password)
       else sender() ! Error("invalid sender")
 
     case Registered => socket ! Ok()
@@ -34,7 +34,7 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
     case error: RegisterResult => socket ! Error(error.toString)
 
     case Login(username, password) =>
-      if (sender() == socket) context.parent ! LoginMessage(id, username, password)
+      if (sender() == socket) gateway ! LoginMessage(id, username, password)
       else sender() ! Error("invalid sender")
 
     case Successful(username) =>
@@ -52,7 +52,7 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
 
   def authorized(socket: ActorRef, username: String): Receive =  {
 
-    case ReadyToMatch() => matchMaking ! AddToMatching(username, context.self)
+    case ReadyToMatch() => gateway ! AddToMatching(username, context.self)
 
     case NotMatched => socket ! Error(NotMatched.toString)
 
@@ -69,10 +69,10 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
 
   def online(socket: ActorRef, username: String): Receive = {
 
-    case request @ GetOpponents() => matchMaking ! request
+    case request @ GetOpponents() => gateway ! request
     case response @ OpponentsList(_) => socket ! response
 
-    case MatchWith(opponent) => matchMaking ! MatchPlayers(username, opponent)
+    case MatchWith(opponent) => gateway ! MatchPlayers(username, opponent)
 
     case NotMatched => socket ! Error(NotMatched.toString)
 
@@ -94,7 +94,7 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
     case req @ MakeMove(_, _) => game ! req
     case resp : GameResult =>
       socket ! resp
-      matchMaking ! MatchEnded(username)
+      gateway ! MatchEnded(username)
       context.become(online(socket, username))
 
     case _ => sender() ! Error("invalid state for request")
@@ -107,7 +107,7 @@ class Session(id: UUID, matchMaking: ActorRef) extends Actor {
 
 object Session {
 
-  def props(id: UUID, matchmakingActor: ActorRef) = Props(new Session(id, matchmakingActor))
+  def props(id: UUID, gateway: ActorRef) = Props(new Session(id, gateway))
 
   case class AddToMatching(username: String, session: ActorRef)
 }
