@@ -1,8 +1,8 @@
 package com.example.akkatest.players
 
 import akka.actor.{Actor, Props}
+import com.example.akkatest.players.PlayerRepository.{GetSecret, RegisterMessage}
 import com.example.akkatest.players.RegisterResults._
-import com.example.akkatest.session.ServerGateway.{GetSecret, RegisterMessage}
 
 /**
   * @author Denis Pakhomov.
@@ -11,7 +11,7 @@ import com.example.akkatest.session.ServerGateway.{GetSecret, RegisterMessage}
 class PlayerRepository extends Actor {
 
   def process(users: Map[String, String]): Receive = {
-    case message@RegisterMessage(_, _) =>
+    case message @ RegisterMessage(_, _) =>
       val messageEither = message match {
         case _ if message.username.isEmpty => Left(InvalidName)
         case _ if message.password.isEmpty => Left(InvalidPassword)
@@ -34,6 +34,9 @@ class PlayerRepository extends Actor {
 
 object PlayerRepository {
   def props() = Props[PlayerRepository]
+
+  case class RegisterMessage(username: String, password: String)
+  case class GetSecret(username: String)
 }
 
 object RegisterResults {

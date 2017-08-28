@@ -53,7 +53,6 @@ class GameActor(game: TicTacToeGame, player1: PlayerInfo, player2: PlayerInfo) e
   }
 
   override def preStart(): Unit = {
-    println(players)
     players.foreach {case (actor, player) => actor ! GameStarted(player.opponent)}
   }
 

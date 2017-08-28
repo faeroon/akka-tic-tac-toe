@@ -6,11 +6,12 @@ import akka.actor.{Actor, ActorRef, Props}
 import com.example.akkatest.game.{GameError, GameResult}
 import com.example.akkatest.matchmaking.MatchMakingStatuses.{AddedToMatch, NotMatched}
 import com.example.akkatest.matchmaking.{MatchEnded, MatchPlayers}
+import com.example.akkatest.players.PlayerRepository.RegisterMessage
 import com.example.akkatest.players.RegisterResults.{RegisterResult, Registered}
 import com.example.akkatest.server._
-import com.example.akkatest.session.ServerGateway.LoginResults.{LoginResult, Successful}
-import com.example.akkatest.session.ServerGateway.{LoginMessage, RegisterMessage}
 import com.example.akkatest.session.Session.AddToMatching
+import com.example.akkatest.session.SessionRepository.LoginMessage
+import com.example.akkatest.session.SessionRepository.LoginResults.{LoginResult, Successful}
 
 /**
   * @author Denis Pakhomov.
@@ -77,7 +78,6 @@ class Session(id: UUID, gateway: ActorRef) extends Actor {
     case NotMatched => socket ! Error(NotMatched.toString)
 
     case resp @ GameStarted(_) =>
-      println(resp)
       context.become(matching(socket, username, sender()))
       socket ! resp
 

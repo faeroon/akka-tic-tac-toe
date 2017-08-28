@@ -10,10 +10,7 @@ import akka.pattern.ask
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
-import com.example.akkatest.game.GameManagerActor
-import com.example.akkatest.matchmaking.MatchMakingActor
-import com.example.akkatest.players.PlayerRepository
-import com.example.akkatest.session.ServerGateway.StartSession
+import com.example.akkatest.session.SessionRepository.StartSession
 import com.example.akkatest.session._
 
 import scala.concurrent.duration.FiniteDuration
