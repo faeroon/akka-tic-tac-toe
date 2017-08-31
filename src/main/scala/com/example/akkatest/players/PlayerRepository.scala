@@ -1,6 +1,8 @@
 package com.example.akkatest.players
 
 import akka.actor.{Actor, Props}
+import akka.routing.ConsistentHashingRouter.ConsistentHashMapping
+import akka.routing.ConsistentHashingRouter.ConsistentHashable
 import com.example.akkatest.players.PlayerRepository.{GetSecret, RegisterMessage}
 import com.example.akkatest.players.RegisterResults._
 
@@ -35,8 +37,17 @@ class PlayerRepository extends Actor {
 object PlayerRepository {
   def props() = Props[PlayerRepository]
 
-  case class RegisterMessage(username: String, password: String)
-  case class GetSecret(username: String)
+  case class RegisterMessage(username: String, password: String) extends ConsistentHashable {
+    override def consistentHashKey: Any = username
+  }
+  case class GetSecret(username: String) extends ConsistentHashable {
+    override def consistentHashKey: Any = username
+  }
+
+  def hashMapping: ConsistentHashMapping = {
+    case RegisterMessage(username, _) => username
+    case GetSecret(username) => username
+  }
 }
 
 object RegisterResults {

@@ -1,6 +1,7 @@
 package com.example.akkatest.server
 
 import akka.actor.{Actor, Props}
+import akka.routing.FromConfig
 import akka.util.Timeout
 import com.example.akkatest.game.GameManagerActor
 import com.example.akkatest.game.GameManagerActor.CreateGame
@@ -19,7 +20,7 @@ import scala.concurrent.ExecutionContextExecutor
   */
 class ServerGateway()(implicit val dispatcher: ExecutionContextExecutor, implicit val timeout: Timeout) extends Actor {
 
-  private val playerRepository = context.actorOf(PlayerRepository.props())
+  private val playerRepository = context.actorOf(FromConfig.props(PlayerRepository.props()), "players")
   private val matchMaking = context.actorOf(MatchMakingActor.props(context.self))
   private val gameManager = context.actorOf(GameManagerActor.props())
   private val sessionRepository = context.actorOf(SessionRepository.props(context.self))

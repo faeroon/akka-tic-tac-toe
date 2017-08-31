@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import com.example.akkatest.session.SessionRepository.StartSession
-import com.example.akkatest.session._
+import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration.FiniteDuration
 import scala.io.StdIn
@@ -22,7 +22,8 @@ import scala.io.StdIn
   */
 object WebServer {
 
-  implicit val system = ActorSystem("tic-tac-toe-server")
+  val configuration = ConfigFactory.load()
+  implicit val system = ActorSystem("tic-tac-toe-server", configuration)
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
   implicit val timeout = Timeout(5, TimeUnit.SECONDS)
@@ -39,7 +40,7 @@ object WebServer {
 
   def main(args: Array[String]): Unit = {
 
-    val serverGateway = system.actorOf(ServerGateway.props(), name = "server-gateway")
+    val serverGateway = system.actorOf(ServerGateway.props(), name = "gateway")
 
     val route = {
       path("ws") {
