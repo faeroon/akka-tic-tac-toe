@@ -7,6 +7,8 @@ import com.example.akkatest.players.PlayerRepository.{GetSecret, RegisterMessage
 import com.example.akkatest.players.RegisterResults._
 
 /**
+  * Actor for storing player credentials
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */

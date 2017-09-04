@@ -5,7 +5,7 @@ import akka.routing.FromConfig
 import akka.util.Timeout
 import com.example.akkatest.game.GameManagerActor
 import com.example.akkatest.game.GameManagerActor.CreateGame
-import com.example.akkatest.matchmaking.{MatchMakingActor, MatchPlayers}
+import com.example.akkatest.matchmaking.{MatchEnded, MatchMakingActor, MatchPlayers}
 import com.example.akkatest.players.PlayerRepository
 import com.example.akkatest.players.PlayerRepository.{GetSecret, RegisterMessage}
 import com.example.akkatest.session.Session.AddToMatching
@@ -15,6 +15,8 @@ import com.example.akkatest.session.SessionRepository.{LoginMessage, StartSessio
 import scala.concurrent.ExecutionContextExecutor
 
 /**
+  * Gateway between all actor services in system
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */
@@ -36,6 +38,7 @@ class ServerGateway()(implicit val dispatcher: ExecutionContextExecutor, implici
     case message @ AddToMatching(_, _) => matchMaking.forward(message)
     case message @ GetOpponents() => matchMaking.forward(message)
     case message @ MatchPlayers(_, _) => matchMaking.forward(message)
+    case message @ MatchEnded(_) => matchMaking.forward(message)
 
     case message @ CreateGame(_, _) => gameManager ! message
 

@@ -4,6 +4,8 @@ import akka.actor.{Actor, Props}
 import com.example.akkatest.game.GameManagerActor.CreateGame
 
 /**
+  * Supervisor actor for game actors
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */

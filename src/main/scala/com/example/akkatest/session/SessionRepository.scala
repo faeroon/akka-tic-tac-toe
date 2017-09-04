@@ -13,6 +13,8 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.util.Success
 
 /**
+  * Service actor for controlling player sessions
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */

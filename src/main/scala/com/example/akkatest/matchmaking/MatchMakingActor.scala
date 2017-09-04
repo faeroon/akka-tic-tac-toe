@@ -8,6 +8,8 @@ import com.example.akkatest.server.{GetOpponents, OpponentsList}
 import com.example.akkatest.session.Session.AddToMatching
 
 /**
+  * Service actor for matching players in game
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */

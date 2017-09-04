@@ -17,6 +17,8 @@ import scala.concurrent.duration.FiniteDuration
 import scala.io.StdIn
 
 /**
+  * Akka web-socket game server
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */
@@ -28,13 +30,19 @@ object WebServer {
   implicit val executionContext = system.dispatcher
   implicit val timeout = Timeout(5, TimeUnit.SECONDS)
 
+  /**
+    * create adapter actor for web-socket connection
+    *
+    * @param session player session actor
+    * @return
+    */
   def initWebSocketActor(session: ActorRef): Flow[Message, Message, Any] = {
     val client = system.actorOf(WebSocketAdapter.props(session))
     val in = Sink.actorRef(client, 'sinkclose)
     val out = Source.actorRef(8, OverflowStrategy.fail).mapMaterializedValue { a =>
       client ! ('income -> a)
       a
-    }.keepAlive(FiniteDuration(5, TimeUnit.SECONDS), () => TextMessage.Strict("""{"type": "HeartBeat"}"""))
+    }.keepAlive(FiniteDuration(5, TimeUnit.SECONDS), () => TextMessage.Strict("""{"$type": "HeartBeat"}"""))
     Flow.fromSinkAndSource(in, out)
   }
 
@@ -42,6 +50,7 @@ object WebServer {
 
     val serverGateway = system.actorOf(ServerGateway.props(), name = "gateway")
 
+    // create /ws endpoint for web socket connections
     val route = {
       path("ws") {
         get {

@@ -6,13 +6,15 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 
 /**
+  * Circe JSON encoder/decoders for game requests and responses
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */
 trait JsonUtils {
 
   implicit val customConfig: Configuration = Configuration.default.withDefaults.withSnakeCaseKeys
-    .withDiscriminator("type")
+    .withDiscriminator("$type")
 
   implicit val gameResponseEncoder: Encoder[GameResponse] = fancy.deriveEncoder[GameResponse]
   implicit val gameRequestDecoder: Decoder[GameRequest] = fancy.deriveDecoder[GameRequest]

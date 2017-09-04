@@ -14,17 +14,31 @@ import com.example.akkatest.session.SessionRepository.LoginMessage
 import com.example.akkatest.session.SessionRepository.LoginResults.{LoginResult, Successful}
 
 /**
+  * Player game session
+  *
   * @author Denis Pakhomov.
   * @version 1.0
   */
 class Session(id: UUID, gateway: ActorRef) extends Actor {
 
+  /**
+    * state when it's not connected to web socket actor. After connection state changes to "anonymous"
+    *
+    * @return
+    */
   def notInitialized(): Receive = {
     case ('income, socket: ActorRef) => context.become(anonymous(socket))
   }
 
   //region anonymous state
 
+  /**
+    * Anonymous player state. In this state player can create new account and login.
+    * After successful authorization state changes to "authorized"
+    *
+    * @param socket
+    * @return
+    */
   def anonymous(socket: ActorRef): Receive = {
     case Register(username, password) =>
       if (sender() == socket) gateway ! RegisterMessage(username, password)
@@ -51,6 +65,13 @@ class Session(id: UUID, gateway: ActorRef) extends Actor {
 
   //region authorized state
 
+  /**
+    * State for authorized player. In this state player is disabled for matching and isn't showed in opponents list
+    *
+    * @param socket
+    * @param username
+    * @return
+    */
   def authorized(socket: ActorRef, username: String): Receive =  {
 
     case ReadyToMatch() => gateway ! AddToMatching(username, context.self)
@@ -68,6 +89,13 @@ class Session(id: UUID, gateway: ActorRef) extends Actor {
 
   //region online state
 
+  /**
+    * State for player ready to game. Player can start new tic-tac-toe game in this state
+    *
+    * @param socket
+    * @param username
+    * @return
+    */
   def online(socket: ActorRef, username: String): Receive = {
 
     case request @ GetOpponents() => gateway ! request
@@ -88,6 +116,15 @@ class Session(id: UUID, gateway: ActorRef) extends Actor {
 
   //region matching state
 
+  /**
+    * State for game match. In this state players can send their moves to game actor.
+    * After game end state changes to "authorized"
+    *
+    * @param socket
+    * @param username
+    * @param game
+    * @return
+    */
   def matching(socket: ActorRef, username: String, game: ActorRef): Receive = {
     case error: GameError => socket ! Error(error.toString)
     case resp @ PlayerMadeMove(_, _, _, _) => socket ! resp
