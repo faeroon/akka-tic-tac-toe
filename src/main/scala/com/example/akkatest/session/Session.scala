@@ -92,10 +92,10 @@ class Session(id: UUID, gateway: ActorRef) extends Actor {
     case error: GameError => socket ! Error(error.toString)
     case resp @ PlayerMadeMove(_, _, _, _) => socket ! resp
     case req @ MakeMove(_, _) => game ! req
-    case resp : GameResult =>
+    case resp : GameOver =>
       socket ! resp
       gateway ! MatchEnded(username)
-      context.become(online(socket, username))
+      context.become(authorized(socket, username))
 
     case _ => sender() ! Error("invalid state for request")
   }
