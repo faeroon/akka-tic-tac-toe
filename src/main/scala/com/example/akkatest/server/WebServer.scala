@@ -25,7 +25,7 @@ import scala.io.StdIn
 object WebServer {
 
   val configuration = ConfigFactory.load()
-  implicit val system = ActorSystem("tic-tac-toe-server", configuration)
+  implicit val system = ActorSystem("tic-tac-toe-server", configuration.getConfig("web-server"))
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
   implicit val timeout = Timeout(5, TimeUnit.SECONDS)
@@ -46,7 +46,7 @@ object WebServer {
     Flow.fromSinkAndSource(in, out)
   }
 
-  def main(args: Array[String]): Unit = {
+  def start(): Unit = {
 
     val serverGateway = system.actorOf(ServerGateway.props(), name = "gateway")
 

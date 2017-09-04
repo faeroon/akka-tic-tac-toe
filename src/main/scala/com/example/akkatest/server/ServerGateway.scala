@@ -22,7 +22,7 @@ import scala.concurrent.ExecutionContextExecutor
   */
 class ServerGateway()(implicit val dispatcher: ExecutionContextExecutor, implicit val timeout: Timeout) extends Actor {
 
-  private val playerRepository = context.actorOf(FromConfig.props(PlayerRepository.props()), "players")
+  private val playerRepository = context.actorSelection("akka.tcp://players-repo@127.0.0.1:6060/user/players")
   private val matchMaking = context.actorOf(MatchMakingActor.props(context.self))
   private val gameManager = context.actorOf(GameManagerActor.props())
   private val sessionRepository = context.actorOf(SessionRepository.props(context.self))
